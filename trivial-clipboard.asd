@@ -1,5 +1,5 @@
 (in-package :asdf-user)
-(defsystem sn.clipboard
+(defsystem trivial-clipboard
   :version "0.0.0.0"
   :author "SANO Masatoshi"
   :license "MIT"

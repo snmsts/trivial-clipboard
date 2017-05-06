@@ -1,8 +1,8 @@
-(defpackage sn.clipboard
+(defpackage trivial-clipboard
   (:use :cl)
   (:export :text))
 
-(in-package :sn.clipboard)
+(in-package :trivial-clipboard)
 
 (defun text (&optional data)
   (cond
