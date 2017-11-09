@@ -5,14 +5,14 @@ extern "C" {
 #endif
 
 const char* getClipboard(void) {
-  NSString * contents = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
-  return [contents UTF8String];
+  return [[[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString] UTF8String];
 }
 
-void setClipboard(char* s) {
-  NSString * nss = [NSString stringWithCString:s encoding:[NSString defaultCStringEncoding]];
+void setClipboard(const char* s) {
   [[NSPasteboard generalPasteboard] clearContents];
-  [[NSPasteboard generalPasteboard] setString:nss forType:NSPasteboardTypeString];
+  [[NSPasteboard generalPasteboard]
+   setString:[NSString stringWithCString:s encoding:[NSString defaultCStringEncoding]]
+   forType:NSPasteboardTypeString];
 }
 
 #if __cplusplus
