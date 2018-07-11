@@ -19,6 +19,10 @@
          (with-input-from-string (input data)
            (uiop:run-program "xclip -i -selection clipboard"
                              :input input))
+         t)
+       (ignore-errors
+         (with-input-from-string (input data)
+           (uiop:run-program "xsel -bi" :input input))
          t))
       (error "copy failure"))
      data)
@@ -32,5 +36,8 @@
       (ignore-errors
         (with-output-to-string (output)
           (uiop:run-program "xclip -o -selection clipboard"
-                            :output output)))))
+                            :output output)))
+      (ignore-errors
+        (with-output-to-string (output)
+          (uiop:run-program "xsel -bo" :output output)))))
     (t (error "~S is not acceptable." data))))
