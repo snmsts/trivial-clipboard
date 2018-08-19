@@ -10,4 +10,5 @@
                 :components
                 ((:file "package")
                  #+os-windows (:file "windows")
-                 (:file "text")))))
+                 (:file "text"))))
+  :in-order-to ((test-op (test-op trivial-clipboard-test))))

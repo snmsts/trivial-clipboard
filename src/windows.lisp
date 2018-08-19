@@ -52,7 +52,7 @@
     (with-foreign-string (cstring string)
       (let ((hmem
               (foreign-funcall "GlobalAlloc"
-                               :uint #.(logxor +win32-gmem-ddeshare+
+                               :uint #.(logior +win32-gmem-ddeshare+
                                                +win32-gmem-moveable+)
                                :uint (* 2 (1+ (foreign-funcall "wcslen"
                                                                :pointer cstring
@@ -62,8 +62,8 @@
           (error "GlobalAlloc failed."))
         (handler-bind
             ((error (lambda (c)
-                      ;; HMEM must be freed if it was not successfully
-                      ;; set to the clipboard.
+                      ;; HMEM must be freed if and only if it was not
+                      ;; successfully set to the clipboard.
                       (declare (ignore c))
                       (foreign-funcall "GlobalFree" :pointer hmem :pointer))))
           (unwind-protect
