@@ -8,6 +8,10 @@ trivial-clipboard let access system clipboard.
 (ql:quickload :trivial-clipboard)
 ```
 
+## Dependencies
+- CFFI (only on Windows)
+
+
 ## Usage
 
 get text from clipboard.

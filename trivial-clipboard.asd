@@ -4,7 +4,11 @@
   :author "SANO Masatoshi"
   :description "trivial-clipboard let access system clipboard."
   :license "MIT"
-  :depends-on ("uiop")
+  :depends-on ("uiop" #+os-windows "cffi")
+  :serial t
   :components ((:module "src"
                 :components
-                ((:file "text")))))
+                ((:file "package")
+                 #+os-windows (:file "windows")
+                 (:file "text"))))
+  :in-order-to ((test-op (test-op trivial-clipboard-test))))
