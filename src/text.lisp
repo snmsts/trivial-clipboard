@@ -1,5 +1,29 @@
 (in-package :trivial-clipboard)
 
+(defvar *clipboard-in-command*
+  #+(or darwin macosx)
+  "pbcopy"
+  #+(and :unix (:not :darwin))
+  "xclip")
+
+(defvar *clipboard-out-command*
+  #+(or darwin macosx)
+  "pbpaste"
+  #+(and :unix (:not :darwin))
+  "xclip")
+
+(defvar *clipboard-in-args*
+  (progn
+    '()
+    #+ (and :unix (:not :darwin))
+    '("-in" "-selection" "clipboard")))
+
+(defvar *clipboard-out-args*
+  (progn
+    '()
+    #+ (and :unix (:not :darwin))
+    '("-out" "-selection" "clipboard")))
+
 (defun text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
 signalled if the copy failed.
@@ -8,39 +32,18 @@ If DATA is NIL, TEXT returns the STRING from the clipboard. If the
 copy failed, it returns NIL instead."
   (etypecase data
     (string
-     (or
-      #+(or darwin macosx)
-      (ignore-errors
-       (with-input-from-string (input data)
-         (uiop:run-program "pbcopy"
-                           :input input))
-       t)
-      #+os-windows
-      (ignore-errors (set-text-on-win32 data))
-      (ignore-errors
-       (with-input-from-string (input data)
-         (uiop:run-program "xclip -i -selection clipboard"
-                           :input input))
-       t)
-      (ignore-errors
-       (with-input-from-string (input data)
-         (uiop:run-program "xsel -bi" :input input))
-       t)
-      (error "copy failure"))
+     #+os-windows
+     (set-text-on-win32 data)
+     #+(not os-windows)
+     (with-input-from-string (input data)
+       (uiop:run-program (cons *clipboard-in-command* *clipboard-in-args*)
+                         :input input))
      data)
     (null
      (or
-      #+(or darwin macosx)
-      (ignore-errors
-       (with-output-to-string (output)
-         (uiop:run-program "pbpaste"
-                           :output output)))
       #+os-windows
-      (ignore-errors (get-text-on-win32))
-      (ignore-errors
-       (with-output-to-string (output)
-         (uiop:run-program "xclip -o -selection clipboard"
-                           :output output)))
-      (ignore-errors
-       (with-output-to-string (output)
-         (uiop:run-program "xsel -bo" :output output)))))))
+      (get-text-on-win32)
+      #+(not os-windows)
+      (with-output-to-string (output)
+         (uiop:run-program (cons *clipboard-out-command* *clipboard-out-args*)
+                           :output output))))))
