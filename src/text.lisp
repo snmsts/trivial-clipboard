@@ -1,28 +1,44 @@
 (in-package :trivial-clipboard)
 
+(defun executable-find (command)
+  "Search for COMMAND in the PATH and return the absolute file name.
+Return nil if COMMAND is not found anywhere."
+  (multiple-value-bind (path)
+      (ignore-errors
+       (uiop:run-program (format nil "command -v ~A" command)
+                         :output '(:string :stripped t)))
+    path))
+
 (defvar *clipboard-in-command*
   #+(or darwin macosx)
   "pbcopy"
   #+(and :unix (:not :darwin))
-  "xclip")
+  (or (executable-find "xclip")
+      (executable-find "xsel")))
 
 (defvar *clipboard-out-command*
   #+(or darwin macosx)
   "pbpaste"
   #+(and :unix (:not :darwin))
-  "xclip")
+  *clipboard-in-command*)
 
 (defvar *clipboard-in-args*
   (progn
     '()
     #+ (and :unix (:not :darwin))
-    '("-in" "-selection" "clipboard")))
+    (or (and (string= (pathname-name *clipboard-in-command*) "xclip")
+             '("-in" "-selection" "clipboard"))
+        (and (string= (pathname-name *clipboard-in-command*) "xsel")
+             '("--input" "--clipboard")))))
 
 (defvar *clipboard-out-args*
   (progn
     '()
     #+ (and :unix (:not :darwin))
-    '("-out" "-selection" "clipboard")))
+    (or (and (string= (pathname-name *clipboard-in-command*) "xclip")
+             '("-out" "-selection" "clipboard"))
+        (and (string= (pathname-name *clipboard-in-command*) "xsel")
+             '("--output" "--clipboard")))))
 
 (defun text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
