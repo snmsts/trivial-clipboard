@@ -14,7 +14,8 @@ Return nil if COMMAND is not found anywhere."
   "pbcopy"
   #+(and :unix (:not :darwin))
   (or (executable-find "xclip")
-      (executable-find "xsel")))
+      (executable-find "xsel")
+      ""))
 
 (defvar *clipboard-out-command*
   #+(or darwin macosx)
