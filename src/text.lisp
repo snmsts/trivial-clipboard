@@ -13,7 +13,8 @@ Return nil if COMMAND is not found anywhere."
   #+(or darwin macosx)
   "pbcopy"
   #+(and :unix (:not :darwin))
-  (or (executable-find "xclip")
+  (or (executable-find "wl-copy")
+      (executable-find "xclip")
       (executable-find "xsel")
       ""))
 
@@ -21,13 +22,16 @@ Return nil if COMMAND is not found anywhere."
   #+(or darwin macosx)
   "pbpaste"
   #+(and :unix (:not :darwin))
-  *clipboard-in-command*)
+  (or (executable-find "wl-paste")
+      *clipboard-in-command*))
 
 (defvar *clipboard-in-args*
   (progn
     '()
     #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "xclip")
+    (or (and (string= (pathname-name *clipboard-in-command*) "wl-copy")
+             '())
+        (and (string= (pathname-name *clipboard-in-command*) "xclip")
              '("-in" "-selection" "clipboard"))
         (and (string= (pathname-name *clipboard-in-command*) "xsel")
              '("--input" "--clipboard")))))
@@ -36,7 +40,9 @@ Return nil if COMMAND is not found anywhere."
   (progn
     '()
     #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "xclip")
+    (or (and (string= (pathname-name *clipboard-in-command*) "wl-paste")
+             '())
+        (and (string= (pathname-name *clipboard-in-command*) "xclip")
              '("-out" "-selection" "clipboard"))
         (and (string= (pathname-name *clipboard-in-command*) "xsel")
              '("--output" "--clipboard")))))
