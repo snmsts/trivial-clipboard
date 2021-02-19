@@ -9,12 +9,6 @@ Return nil if COMMAND is not found anywhere."
                          :output '(:string :stripped t)))
     path))
 
-(let ((table (make-hash-table :test 'equal)))
-  (defun executable-find-with-cache (command)
-    (or (gethash command table)
-        (setf (gethash command table)
-              (executable-find command)))))
-
 (defparameter *clipboard-commands*
   #+(or darwin macosx)
   '((:mac ("pbcopy") ("pbpaste")))
@@ -36,14 +30,18 @@ Return nil if COMMAND is not found anywhere."
 (defun find-command (fn)
   (loop :for elt :in *clipboard-commands*
         :for command := (funcall fn elt)
-        :when (executable-find-with-cache (first command))
+        :when (executable-find (first command))
         :return command))
 
-(defun find-paste-command ()
-  (find-command #'get-paste-command))
+(let ((command nil))
+  (defun find-paste-command ()
+    (or command
+        (setf command (find-command #'get-paste-command)))))
 
-(defun find-copy-command ()
-  (find-command #'get-copy-command))
+(let ((command nil))
+  (defun find-copy-command ()
+    (or command
+        (setf command (find-command #'get-copy-command)))))
 
 (defun paste ()
   (let ((command (find-paste-command)))
