@@ -9,6 +9,7 @@
   :components ((:module "src"
                 :components
                 ((:file "package")
+                 (:file "conditions")
                  #+os-windows (:file "windows")
                  (:file "text"))))
   :in-order-to ((test-op (test-op trivial-clipboard-test))))

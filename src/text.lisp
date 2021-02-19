@@ -15,37 +15,17 @@ Return nil if COMMAND is not found anywhere."
         (setf (gethash command table)
               (executable-find command)))))
 
-(defvar *clipboard-commands* '())
+(defparameter *clipboard-commands*
+  #+(or darwin macosx)
+  '((:mac ("pbcopy") ("pbpaste")))
+  #-(or darwin macosx)
+  '((:wayland ("wl-copy") ("wl-paste"))
+    (:xclip ("xclip" "-in" "-selection" "clipboard") ("xclip" "-out" "-selection" "clipboard"))
+    (:xsel ("xsel" "--input" "--clipboard") ("xsel" "--output" "--clipboard"))))
 
-(defun register-clipboard (name copy-command paste-command)
-  (let ((elt (assoc name *clipboard-commands*))
-        (value (list (uiop:ensure-list copy-command)
-                     (uiop:ensure-list paste-command))))
-    (if elt
-        (setf (cdr elt)
-              value)
-        (setf *clipboard-commands*
-              (append *clipboard-commands*
-                      (list (cons name value)))))))
-
-#+(or darwin macosx)
-(register-clipboard :mac
-                    "pbcopy"
-                    "pbpaste")
-
-#-(or darwin macosx)
-(progn
-  (register-clipboard :wayland
-                      "wl-copy"
-                      "wl-paste")
-
-  (register-clipboard :xclip
-                      '("xclip" "-in" "-selection" "clipboard")
-                      '("xclip" "-out" "-selection" "clipboard"))
-
-  (register-clipboard :xsel
-                      '("xsel" "--input" "--clipboard")
-                      '("xsel" "--output" "--clipboard")))
+(defun clipboard-programs (fn)
+  (loop :for elt :in *clipboard-commands*
+        :collect (first (funcall fn elt))))
 
 (defun get-paste-command (elt)
   (third elt))
@@ -67,17 +47,21 @@ Return nil if COMMAND is not found anywhere."
 
 (defun paste ()
   (let ((command (find-paste-command)))
-    (when command
-      (with-output-to-string (output)
-        (uiop:run-program command
-                          :output output)))))
+    (if command
+        (with-output-to-string (output)
+          (uiop:run-program command
+                            :output output))
+        (error 'not-installed
+               :programs (clipboard-programs #'get-paste-command)))))
 
 (defun copy (text)
   (let ((command (find-copy-command)))
-    (when command
-      (with-input-from-string (input text)
-        (uiop:run-program command
-                          :input input)))))
+    (if command
+        (with-input-from-string (input text)
+          (uiop:run-program command
+                            :input input))
+        (error 'not-installed
+               :programs (clipboard-programs #'get-copy-command)))))
 
 (defun text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
