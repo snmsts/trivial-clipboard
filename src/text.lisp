@@ -9,43 +9,57 @@ Return nil if COMMAND is not found anywhere."
                          :output '(:string :stripped t)))
     path))
 
-(defvar *clipboard-in-command*
+(defparameter *clipboard-commands*
   #+(or darwin macosx)
-  "pbcopy"
-  #+(and :unix (:not :darwin))
-  (or (executable-find "wl-copy")
-      (executable-find "xclip")
-      (executable-find "xsel")
-      ""))
+  '((:mac ("pbcopy") ("pbpaste")))
+  #-(or darwin macosx)
+  '((:wayland ("wl-copy") ("wl-paste"))
+    (:xclip ("xclip" "-in" "-selection" "clipboard") ("xclip" "-out" "-selection" "clipboard"))
+    (:xsel ("xsel" "--input" "--clipboard") ("xsel" "--output" "--clipboard"))))
 
-(defvar *clipboard-out-command*
-  #+(or darwin macosx)
-  "pbpaste"
-  #+(and :unix (:not :darwin))
-  (or (executable-find "wl-paste")
-      *clipboard-in-command*))
+(defun clipboard-programs (fn)
+  (loop :for elt :in *clipboard-commands*
+        :collect (first (funcall fn elt))))
 
-(defvar *clipboard-in-args*
-  (progn
-    '()
-    #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "wl-copy")
-             '())
-        (and (string= (pathname-name *clipboard-in-command*) "xclip")
-             '("-in" "-selection" "clipboard"))
-        (and (string= (pathname-name *clipboard-in-command*) "xsel")
-             '("--input" "--clipboard")))))
+(defun get-paste-command (elt)
+  (third elt))
 
-(defvar *clipboard-out-args*
-  (progn
-    '()
-    #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "wl-paste")
-             '())
-        (and (string= (pathname-name *clipboard-in-command*) "xclip")
-             '("-out" "-selection" "clipboard"))
-        (and (string= (pathname-name *clipboard-in-command*) "xsel")
-             '("--output" "--clipboard")))))
+(defun get-copy-command (elt)
+  (second elt))
+
+(defun find-command (fn)
+  (loop :for elt :in *clipboard-commands*
+        :for command := (funcall fn elt)
+        :when (executable-find (first command))
+        :return command))
+
+(let ((command nil))
+  (defun find-paste-command ()
+    (or command
+        (setf command (find-command #'get-paste-command)))))
+
+(let ((command nil))
+  (defun find-copy-command ()
+    (or command
+        (setf command (find-command #'get-copy-command)))))
+
+(defun paste ()
+  (let ((command (find-paste-command)))
+    (if command
+        (with-output-to-string (output)
+          (uiop:run-program command
+                            :output output))
+        (error 'not-installed
+               :programs (clipboard-programs #'get-paste-command)))))
+
+(defun copy (text)
+  (let ((command (find-copy-command)))
+    (if command
+        (with-input-from-string (input text)
+          (uiop:run-program command
+                            :input input))
+        (error 'not-installed
+               :programs (clipboard-programs #'get-copy-command)))))
 
 (defun text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
@@ -58,15 +72,11 @@ copy failed, it returns NIL instead."
      #+os-windows
      (set-text-on-win32 data)
      #+(not os-windows)
-     (with-input-from-string (input data)
-       (uiop:run-program (cons *clipboard-in-command* *clipboard-in-args*)
-                         :input input))
+     (copy data)
      data)
     (null
      (or
       #+os-windows
       (get-text-on-win32)
       #+(not os-windows)
-      (with-output-to-string (output)
-         (uiop:run-program (cons *clipboard-out-command* *clipboard-out-args*)
-                           :output output))))))
+      (paste)))))
