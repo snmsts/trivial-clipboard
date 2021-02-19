@@ -9,43 +9,75 @@ Return nil if COMMAND is not found anywhere."
                          :output '(:string :stripped t)))
     path))
 
-(defvar *clipboard-in-command*
-  #+(or darwin macosx)
-  "pbcopy"
-  #+(and :unix (:not :darwin))
-  (or (executable-find "wl-copy")
-      (executable-find "xclip")
-      (executable-find "xsel")
-      ""))
+(let ((table (make-hash-table :test 'equal)))
+  (defun executable-find-with-cache (command)
+    (or (gethash command table)
+        (setf (gethash command table)
+              (executable-find command)))))
 
-(defvar *clipboard-out-command*
-  #+(or darwin macosx)
-  "pbpaste"
-  #+(and :unix (:not :darwin))
-  (or (executable-find "wl-paste")
-      *clipboard-in-command*))
+(defvar *clipboard-commands* '())
 
-(defvar *clipboard-in-args*
-  (progn
-    '()
-    #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "wl-copy")
-             '())
-        (and (string= (pathname-name *clipboard-in-command*) "xclip")
-             '("-in" "-selection" "clipboard"))
-        (and (string= (pathname-name *clipboard-in-command*) "xsel")
-             '("--input" "--clipboard")))))
+(defun register-clipboard (name copy-command paste-command)
+  (let ((elt (assoc name *clipboard-commands*))
+        (value (list (uiop:ensure-list copy-command)
+                     (uiop:ensure-list paste-command))))
+    (if elt
+        (setf (cdr elt)
+              value)
+        (setf *clipboard-commands*
+              (append *clipboard-commands*
+                      (list (cons name value)))))))
 
-(defvar *clipboard-out-args*
-  (progn
-    '()
-    #+ (and :unix (:not :darwin))
-    (or (and (string= (pathname-name *clipboard-in-command*) "wl-paste")
-             '())
-        (and (string= (pathname-name *clipboard-in-command*) "xclip")
-             '("-out" "-selection" "clipboard"))
-        (and (string= (pathname-name *clipboard-in-command*) "xsel")
-             '("--output" "--clipboard")))))
+#+(or darwin macosx)
+(register-clipboard :mac
+                    "pbcopy"
+                    "pbpaste")
+
+#-(or darwin macosx)
+(progn
+  (register-clipboard :wayland
+                      "wl-copy"
+                      "wl-paste")
+
+  (register-clipboard :xclip
+                      '("xclip" "-in" "-selection" "clipboard")
+                      '("xclip" "-out" "-selection" "clipboard"))
+
+  (register-clipboard :xsel
+                      '("xsel" "--input" "--clipboard")
+                      '("xsel" "--output" "--clipboard")))
+
+(defun get-paste-command (elt)
+  (third elt))
+
+(defun get-copy-command (elt)
+  (second elt))
+
+(defun find-command (fn)
+  (loop :for elt :in *clipboard-commands*
+        :for command := (funcall fn elt)
+        :when (executable-find-with-cache (first command))
+        :return command))
+
+(defun find-paste-command ()
+  (find-command #'get-paste-command))
+
+(defun find-copy-command ()
+  (find-command #'get-copy-command))
+
+(defun paste ()
+  (let ((command (find-paste-command)))
+    (when command
+      (with-output-to-string (output)
+        (uiop:run-program command
+                          :output output)))))
+
+(defun copy (text)
+  (let ((command (find-copy-command)))
+    (when command
+      (with-input-from-string (input text)
+        (uiop:run-program command
+                          :input input)))))
 
 (defun text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
@@ -58,15 +90,11 @@ copy failed, it returns NIL instead."
      #+os-windows
      (set-text-on-win32 data)
      #+(not os-windows)
-     (with-input-from-string (input data)
-       (uiop:run-program (cons *clipboard-in-command* *clipboard-in-args*)
-                         :input input))
+     (copy data)
      data)
     (null
      (or
       #+os-windows
       (get-text-on-win32)
       #+(not os-windows)
-      (with-output-to-string (output)
-         (uiop:run-program (cons *clipboard-out-command* *clipboard-out-args*)
-                           :output output))))))
+      (paste)))))
