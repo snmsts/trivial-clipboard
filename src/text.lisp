@@ -61,7 +61,7 @@ Return nil if COMMAND is not found anywhere."
         (error 'not-installed
                :programs (clipboard-programs #'get-copy-command)))))
 
-(defun text (&optional data)
+(defmethod text (&optional data)
   "If DATA is STRING, it is set to the clipboard. An ERROR is
 signalled if the copy failed.
 
@@ -80,3 +80,14 @@ copy failed, it returns NIL instead."
       (get-text-on-win32)
       #+(not os-windows)
       (paste)))))
+
+(defmethod (setf text) ((data string) &optional data-unused)
+  "If DATA is STRING, it is set to the clipboard.
+
+An ERROR is signalled if the copy failed."
+  (declare (ignore data-unused))
+  #+os-windows
+  (set-text-on-win32 data)
+  #+(not os-windows)
+  (copy data)
+  data)
