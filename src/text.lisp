@@ -80,3 +80,31 @@ copy failed, it returns NIL instead."
       (get-text-on-win32)
       #+(not os-windows)
       (paste)))))
+
+(defgeneric content (&key &allow-other-keys)
+  (:method (&key &allow-other-keys)
+    #+os-windows (get-text-on-win32)
+    #-os-windows (paste))
+  (:documentation "A generic function to get the contents of the clipboard.
+
+Returns strings by default.
+
+:around methods and primary method re-definitions can override return
+value to some structured data."))
+
+(defgeneric (setf content) (value &key &allow-other-keys)
+  (:method (value &key &allow-other-keys)
+    #+os-windows (set-text-on-win32 data)
+    #-os-windows (copy data)
+    data)
+  (:documentation "A generic function to set the contents of the clipboard to NEW-VALUE.
+
+Default method only specializes on string, but callers can define more
+methods specializing on specific data types to put into clipboard.
+
+Example: support numbers, converting them to strings
+
+\(defmethod (setf trivial-clipboard:content) ((value number) &key &allow-other-keys)
+  (setf (trivial-clipboard:content) (princ-to-string value)))"))
+
+(push :clipboard-content-method *features*)

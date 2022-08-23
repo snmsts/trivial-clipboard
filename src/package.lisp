@@ -2,4 +2,4 @@
 
 (defpackage trivial-clipboard
   (:use :cl #+os-windows :cffi)
-  (:export :text))
+  (:export :text :content))
