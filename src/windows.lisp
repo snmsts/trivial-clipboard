@@ -4,7 +4,10 @@
 
 (cl:in-package :trivial-clipboard)
 
-(load-foreign-library '(:default "User32"))
+(define-foreign-library user32
+  (t (:default "user32")))
+
+(use-foreign-library user32)
 
 ;; Flags
 (eval-when (:compile-toplevel :load-toplevel :execute)
