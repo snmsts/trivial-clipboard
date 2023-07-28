@@ -17,9 +17,9 @@ Return nil if COMMAND is not found anywhere."
 
 (defparameter *clipboard-commands*
   #+(or darwin macosx)
-  '((:mac
-     ("pbcopy" (lambda () (executable-find "pbcopy")))
-     ("pbpaste" (lambda () (executable-find "pbpaste")))))
+  `((:mac
+     ("pbcopy" ,(lambda () (executable-find "pbcopy")))
+     ("pbpaste" ,(lambda () (executable-find "pbpaste")))))
   #-(or darwin macosx)
   `((:wayland
      (("wl-copy")
