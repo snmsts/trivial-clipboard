@@ -17,43 +17,35 @@ Return nil if COMMAND is not found anywhere."
 
 (defparameter *clipboard-commands*
   #+(or darwin macosx)
-  `((:mac
-     ("pbcopy" ,(lambda () (executable-find "pbcopy")))
-     ("pbpaste" ,(lambda () (executable-find "pbpaste")))))
+  `((:mac ,(constantly t) ("pbcopy") ("pbpaste")))
   #-(or darwin macosx)
-  `((:wayland
-     (("wl-copy")
-      ,(lambda () (and (executable-find "wl-copy") (wayland-session-p))))
-     (("wl-paste")
-      ,(lambda () (and (executable-find "wl-paste") (wayland-session-p)))))
+  `((:wayland wayland-session-p ("wl-copy") ("wl-paste"))
     (:xclip
-     (("xclip" "-in" "-selection" "clipboard")
-      ,(lambda () (and (executable-find "xclip") (x-session-p))))
-     (("xclip" "-out" "-selection" "clipboard")
-      ,(lambda () (and (executable-find "xclip") (x-session-p)))))
+     ,(lambda () (and (executable-find "xclip") (x-session-p)))
+     ("xclip" "-in" "-selection" "clipboard")
+     ("xclip" "-out" "-selection" "clipboard"))
     (:xsel
-     (("xsel" "--input" "--clipboard")
-      ,(lambda () (and (executable-find "xsel") (x-session-p))))
-     (("xsel" "--output" "--clipboard")
-      ,(lambda () (and (executable-find "xsel") (x-session-p))))))
-  "A list, each element being of the form (platform (copy-command
-copy-command-p) (paste-command paste-command-p)).")
+     ,(lambda () (and (executable-find "xclip") (x-session-p)))
+     ("xsel" "--input" "--clipboard")
+     ("xsel" "--output" "--clipboard")))
+  "A list, each element being of the form (clibpoard-method predicate
+copy-command paste-command).")
 
 (defun clipboard-programs (fn)
   (loop :for elt :in *clipboard-commands*
         :collect (first (first (funcall fn elt)))))
 
 (defun get-paste-command (elt)
-  (third elt))
+  (fourth elt))
 
 (defun get-copy-command (elt)
-  (second elt))
+  (third elt))
 
 (defun find-command (fn)
   (loop :for elt :in *clipboard-commands*
         :for command := (funcall fn elt)
-        :when (funcall (second command))
-        :return (first command)))
+        :when (funcall (second elt))
+        :return command))
 
 (let ((command nil))
   (defun find-paste-command ()
