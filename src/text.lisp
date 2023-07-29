@@ -25,7 +25,7 @@ Return nil if COMMAND is not found anywhere."
      ("xclip" "-in" "-selection" "clipboard")
      ("xclip" "-out" "-selection" "clipboard"))
     (:xsel
-     ,(lambda () (and (executable-find "xclip") (x-session-p)))
+     ,(lambda () (and (executable-find "xsel") (x-session-p)))
      ("xsel" "--input" "--clipboard")
      ("xsel" "--output" "--clipboard")))
   "A list, each element being of the form (clibpoard-method predicate
