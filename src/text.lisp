@@ -28,7 +28,7 @@ Return nil if COMMAND is not found anywhere."
      ,(lambda () (and (executable-find "xsel") (x-session-p)))
      ("xsel" "--input" "--clipboard")
      ("xsel" "--output" "--clipboard")))
-  "A list, each element being of the form (clibpoard-method predicate
+  "A list, each element being of the form (clipboard-method predicate
 copy-command paste-command).")
 
 (defun clipboard-programs (fn)
