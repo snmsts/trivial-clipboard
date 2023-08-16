@@ -9,28 +9,42 @@ Return nil if COMMAND is not found anywhere."
                          :output '(:string :stripped t)))
     path))
 
+(defun wayland-session-p ()
+  (string= (uiop:getenvp "XDG_SESSION_TYPE") "wayland"))
+
+(defun x-session-p ()
+  (string= (uiop:getenvp "XDG_SESSION_TYPE") "x11"))
+
 (defparameter *clipboard-commands*
   #+(or darwin macosx)
-  '((:mac ("pbcopy") ("pbpaste")))
+  `((:mac ,(constantly t) ("pbcopy") ("pbpaste")))
   #-(or darwin macosx)
-  '((:wayland ("wl-copy") ("wl-paste"))
-    (:xclip ("xclip" "-in" "-selection" "clipboard") ("xclip" "-out" "-selection" "clipboard"))
-    (:xsel ("xsel" "--input" "--clipboard") ("xsel" "--output" "--clipboard"))))
+  `((:wayland wayland-session-p ("wl-copy") ("wl-paste"))
+    (:xclip
+     ,(lambda () (and (executable-find "xclip") (x-session-p)))
+     ("xclip" "-in" "-selection" "clipboard")
+     ("xclip" "-out" "-selection" "clipboard"))
+    (:xsel
+     ,(lambda () (and (executable-find "xsel") (x-session-p)))
+     ("xsel" "--input" "--clipboard")
+     ("xsel" "--output" "--clipboard")))
+  "A list, each element being of the form (clipboard-method predicate
+copy-command paste-command).")
 
 (defun clipboard-programs (fn)
   (loop :for elt :in *clipboard-commands*
-        :collect (first (funcall fn elt))))
+        :collect (first (first (funcall fn elt)))))
 
 (defun get-paste-command (elt)
-  (third elt))
+  (fourth elt))
 
 (defun get-copy-command (elt)
-  (second elt))
+  (third elt))
 
 (defun find-command (fn)
   (loop :for elt :in *clipboard-commands*
         :for command := (funcall fn elt)
-        :when (executable-find (first command))
+        :when (funcall (second elt))
         :return command))
 
 (let ((command nil))
