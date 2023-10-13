@@ -33,7 +33,7 @@ copy-command paste-command).")
 
 (defun clipboard-programs (fn)
   (loop :for elt :in *clipboard-commands*
-        :collect (first (first (funcall fn elt)))))
+        :collect (first (funcall fn elt))))
 
 (defun get-paste-command (elt)
   (fourth elt))
