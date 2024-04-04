@@ -109,8 +109,8 @@ value to some structured data."))
 (defgeneric (setf content) (value &key &allow-other-keys)
   (:method (value &key &allow-other-keys)
     #+os-windows (set-text-on-win32 data)
-    #-os-windows (copy data)
-    data)
+    #-os-windows (copy value)
+    value)
   (:documentation "A generic function to set the contents of the clipboard to NEW-VALUE.
 
 Default method only specializes on string, but callers can define more
