@@ -13,7 +13,7 @@ Return nil if COMMAND is not found anywhere."
   (string= (uiop:getenvp "XDG_SESSION_TYPE") "wayland"))
 
 (defun x-session-p ()
-  (string= (uiop:getenvp "XDG_SESSION_TYPE") "x11"))
+  (find (uiop:getenvp "XDG_SESSION_TYPE") '("x11" "tty") :test #'string=))
 
 (defparameter *clipboard-commands*
   #+(or darwin macosx)
